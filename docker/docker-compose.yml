@@ -1,0 +1,38 @@
+version: '3.4'
+
+services:
+  proplanetreplicationtool_postgres:
+    hostname: proplanetreplicationtool_postgres
+    container_name: proplanetreplicationtool_postgres
+    image: postgres:13
+    restart: always
+    ports: 
+        - 35431:5432
+    environment:
+        POSTGRES_DB: proplanetreplicationtool
+        POSTGRES_USER: rw_dev
+        POSTGRES_PASSWORD: rw_dev
+        TZ: Europe/Madrid
+    volumes:
+        - proplanetreplicationtool_postgres_data:/var/lib/postgresql/data
+
+  proplanetreplicationtool:
+    hostname: proplanetreplicationtool
+    container_name: proplanetreplicationtool
+    image: ${DOCKER_REGISTRY-}proplanetreplicationtool
+    build:
+      context: ..
+      dockerfile: src/Dockerfile
+    environment:
+      TZ: Europe/Madrid
+      ASPNETCORE_URLS: "http://+:8080;https://+:8081"
+    ports:
+      - "8080:8080"   # HTTP
+      - "8081:8081"   # HTTPS
+    env_file:
+      - .env
+    depends_on: 
+      - proplanetreplicationtool_postgres
+  
+volumes:
+  proplanetreplicationtool_postgres_data: 

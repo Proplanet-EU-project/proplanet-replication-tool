@@ -1,0 +1,53 @@
+﻿@using Blazorise
+
+<Row>
+    <Column ColumnSize="ColumnSize.Is4">
+        <FieldLabel>Water Contact Angle (º)</FieldLabel>
+        <NumericEdit Value="wca_surface" ValueChanged="OnWcaSurfaceChanged" TValue="int" />
+    </Column>
+
+    <Column ColumnSize="ColumnSize.Is4">
+        <FieldLabel>Hexadecane Contact Angle (º)</FieldLabel>
+        <NumericEdit Value="hca" ValueChanged="OnHcaChanged" TValue="int" />
+    </Column>
+
+    <Column ColumnSize="ColumnSize.Is4">
+        <FieldLabel>Surface Free Energy (mN/m)</FieldLabel>
+        <NumericEdit Value="sfe" ValueChanged="OnSfeChanged" TValue="int" />
+    </Column>
+</Row>
+
+@code {
+    [Parameter]
+    public int wca_surface { get; set; }
+    [Parameter]
+    public EventCallback<int> wca_surfaceChanged { get; set; }
+
+    [Parameter]
+    public int hca { get; set; }
+    [Parameter]
+    public EventCallback<int> hcaChanged { get; set; }
+
+    [Parameter]
+    public int sfe { get; set; }
+    [Parameter]
+    public EventCallback<int> sfeChanged { get; set; }
+
+    private Task OnWcaSurfaceChanged(int value)
+    {
+        wca_surface = value;
+        return wca_surfaceChanged.InvokeAsync(value);
+    }
+
+    private Task OnHcaChanged(int value)
+    {
+        hca = value;
+        return hcaChanged.InvokeAsync(value);
+    }
+
+    private Task OnSfeChanged(int value)
+    {
+        sfe = value;
+        return sfeChanged.InvokeAsync(value);
+    }
+}

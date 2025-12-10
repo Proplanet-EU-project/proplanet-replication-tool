@@ -1,0 +1,142 @@
+﻿@page "/novaRecords"
+@using Blazorise
+@using Blazorise.DataGrid
+@using ProplanetReplicationTool.Data.Models
+@using ProplanetReplicationTool.Data.Models.DTOs
+@using ProplanetReplicationTool.Data.Repositories
+@using ProplanetReplicationTool.Services.Interfaces
+@using ProplanetReplicationTool.Shared.Components
+
+@inject IRepository<SBTestInput> _sBTestInputRepository;
+@inject IRepository<SBTest> _SBTestRepository;
+@inject INovaService _novaService;
+@inject NavigationManager _navigationManager;
+
+@if (!_isInitialised)
+{
+    <CenteredLoadingBar />
+}
+else if (!_showNovaResults)
+{
+    <Div Style="margin:1rem">
+        <DataGrid TItem="SBTestInput"
+                  Data="@_sBTestInputs"
+                  ShowPager="true"
+                  PageSize="10"
+                  ResizeMode="TableResizeMode.Columns"
+                  Resizable="true"
+                  Responsive="true"
+                  Editable="true"
+                  EditMode="DataGridEditMode.Popup"
+                  Striped="true"
+        >
+
+            <DataGridColumns>
+
+                <DataGridColumn TItem="SBTestInput"
+                                Field="@nameof(SBTestInput.ScenarioName)"
+                                Caption="@nameof(SBTestInput.ScenarioName)"
+                                Sortable="true" 
+                                />
+
+                <DataGridColumn TItem="SBTestInput"
+                                Field="@nameof(SBTestInput.NanomaterialName)"
+                                Caption="@nameof(SBTestInput.NanomaterialName)"
+                                Sortable="true" />
+
+                <DataGridColumn TItem="SBTestInput"
+                                Field="@nameof(SBTestInput.MolecularWeight)"
+                                Caption="@nameof(SBTestInput.MolecularWeight)"
+                                Sortable="true" />
+
+                <DataGridCommandColumn TItem="SBTestInput">
+                    <NewCommandTemplate>
+                        <span></span>
+                    </NewCommandTemplate>
+                    <EditCommandTemplate Context="context">
+                        <Button Color="Color.Primary" Clicked="@(() => ShowModalDetails(((SBTestInput)context.Item)))">
+                            Show details
+                        </Button>
+                        <Button Color="Color.Primary" Clicked="@(() => ShowResults(((SBTestInput)context.Item).Id))">
+                            Show result
+                        </Button>
+                    </EditCommandTemplate>
+                    <DeleteCommandTemplate>
+                        <span></span>
+                    </DeleteCommandTemplate>
+                </DataGridCommandColumn>
+            </DataGridColumns>
+        </DataGrid>
+    </Div>
+
+    <Modal @ref="_modalRef">
+        <ModalContent Size="@ModalSize.ExtraLarge" Centered="true">
+            <ModalHeader>
+                <ModalTitle>Emission details</ModalTitle>
+                <CloseButton Clicked="@HideModal" />
+            </ModalHeader>
+            <ModalBody>
+                <NovaEmission EmissionSelected="@emissionDetails" isDisabled="true"></NovaEmission>
+            </ModalBody>
+        </ModalContent>
+    </Modal>
+}
+else 
+{
+    <Container>
+        <Row>
+            <Column ColumnSize="ColumnSize.Is12">
+                <Heading Size="HeadingSize.Is3">Nova Test</Heading>
+                <Divider />
+                <NovaOutput JsonParserNova="@jsonParserNova" originUrl="/novaRecords"></NovaOutput>
+                <br />
+            </Column>
+        </Row>
+    </Container>
+}
+
+@code {
+
+    private bool _isInitialised = false;
+    private bool _showNovaResults = false;
+    private EmissionDTO? emissionDetails = new EmissionDTO();
+    private JsonParserNova? jsonParserNova = null;
+    List<SBTestInput> _sBTestInputs = new List<SBTestInput>();
+
+    private Modal _modalRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _sBTestInputs = await _sBTestInputRepository.GetAllAsync(orderBy: novaInput => novaInput.OrderByDescending(novaInput => novaInput.CreatedAt)) ?? new List<SBTestInput>();
+        _isInitialised = true;
+    }
+
+    private async Task ShowModalDetails(SBTestInput novaInput)
+    {
+        emissionDetails = _novaService.MapToEmissionDTO(novaInput);
+        await _modalRef.Show();
+    }
+
+    private async Task HideModal()
+    {
+        emissionDetails = new EmissionDTO();
+        await _modalRef.Hide();
+    }
+
+    private async Task ShowResults(Guid id)
+    {
+        SBTestInput? novaInput = await _sBTestInputRepository.GetByIdAsync(id);
+        if(novaInput != null)
+        {
+            SBTest? novaOutput = await _SBTestRepository.GetByIdAsync(novaInput.SBTestId);
+            if (novaOutput != null)
+            {
+                JsonParserNova novaJsonParser = new JsonParserNova();
+                novaJsonParser.ParseJson(novaOutput.Result);
+                jsonParserNova = novaJsonParser;
+
+                _showNovaResults = true;
+            }
+        }
+    }
+}

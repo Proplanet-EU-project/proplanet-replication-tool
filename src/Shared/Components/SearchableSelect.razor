@@ -1,0 +1,74 @@
+﻿@using Blazorise
+@using ProplanetReplicationTool.Data.Models.DTOs
+
+<Dropdown Visible="@dropdownVisible" Toggled="OnToggleDropdown" >
+    <DropdownToggle  @onclick="ToggleDropdown" Style=" border: 1px solid #ced4da; background-color:white; width:500px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left;">
+        @SelectedItem
+    </DropdownToggle>
+
+    <DropdownMenu Style="max-width: 800px; max-height: 300px; overflow-y: auto; overflow-x:hidden">
+        <div class="p-2">
+            <TextEdit @bind-Text="@searchText"
+                      Placeholder="Search..."
+                      @oninput="OnSearchChanged" />
+        </div>
+        @if (FilteredItems?.Any() == true)
+        {
+            @foreach (var item in FilteredItems)
+            {
+                <DropdownItem @onclick="@(() => SelectItem(item))">
+                    @item
+                </DropdownItem>
+            }
+        }
+        else
+        {
+            <DropdownItem Disabled>No results</DropdownItem>
+        }
+    </DropdownMenu>
+</Dropdown>
+
+@code {
+    [Parameter]
+    public List<MaterialDTO> Materials { get; set; }
+    [Parameter]
+    public EventCallback<string> SelectedValueChanged { get; set; }
+
+    private string SelectedItem = string.Empty;
+    private string searchText = string.Empty;
+
+    private bool dropdownVisible;
+    private IEnumerable<string> FilteredItems => string.IsNullOrWhiteSpace(searchText)
+        ? Materials.Select(m => m.NanomaterialName)
+        : Materials.Where(x => x.NanomaterialName.Contains(searchText, StringComparison.OrdinalIgnoreCase)).Select(m => m.NanomaterialName);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Materials?.Any() == true && string.IsNullOrEmpty(SelectedItem))
+        {
+            SelectedItem = Materials.First().NanomaterialName;
+            await SelectedValueChanged.InvokeAsync(SelectedItem);
+        }
+    }
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? string.Empty;
+    }
+
+    private async Task SelectItem(string item)
+    {
+        SelectedItem = item;
+        dropdownVisible = false;
+        await SelectedValueChanged.InvokeAsync(item);
+    }
+
+    private void ToggleDropdown()
+    {
+        dropdownVisible = !dropdownVisible;
+    }
+
+    private void OnToggleDropdown(bool value)
+    {
+        dropdownVisible = value;
+    }
+}

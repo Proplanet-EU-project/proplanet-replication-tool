@@ -1,0 +1,66 @@
+﻿<Modal @ref="modalRef" >
+    <ModalContent Centered Size="ModalSize.Large" Style="background-color: #f4f6f9">
+        <ModalHeader>
+            <h3>Disclaimer</h3>
+        </ModalHeader>
+        <ModalBody>
+            <UnorderedList>
+                <OrderedListItem>
+                    Reactions between chemical compounds are not considered.
+                </OrderedListItem>
+                <OrderedListItem>
+                    The tool considers only the mix of raw materials used as formulation for the coatings, since no reactions (and reaction products) are considered, it is not possible to speak of a coating.
+                </OrderedListItem>
+                <OrderedListItem>
+                    False positives/negatives… for safety the model doesn't take into account other mixture effects besides the additive effect (i.e. possible synergistic effect or antagonistic effect... are not considered), thus giving possible positives/negatives. The model doesn't take into account chemicals reactions occurring in the formulation, possibly changing chemicals properties. Chemicals reactions can also occurr in different environmental compartments e.g. air, soil.... This is also not considered by the model.
+                </OrderedListItem>
+                <OrderedListItem>
+                    LungDeposition assessment considers particles which does not apply to volatile compounds.
+                </OrderedListItem>
+                <OrderedListItem>
+                    Safety: for humans, only the inhalation route is taken into account. Other exposure routes (dermal, oral) are not considered.
+                </OrderedListItem>
+                <OrderedListItem>
+                    Safety: the tool applies to the general population (e.g. local communities...) exposed through the environment. It doesn't address safety of workers, users (occupational safety and safety during product use) and vulnerable groups.
+                </OrderedListItem>
+                <OrderedListItem>
+                    Safety: in general, it is a simple model meant as a SSbD tool to be used in the initial phases of product development, to give indication on safety levels, possibly with high uncertainty. It has no regulatory relevance.
+                </OrderedListItem>
+                <OrderedListItem>
+                    This model only covers chemicals applied in PROPLANET.
+                </OrderedListItem>
+                <OrderedListItem>
+                    Safety levels (DNELs and PNECs) have been retrieved from the ECHA CHEM database, in the respect of the database's Legal notice
+                    <a href="https://chem.echa.europa.eu/legal-notice">https://chem.echa.europa.eu/legal-notice</a>.
+                    ECHA holds no responsibility and/or liability for any use made of the retrieved information.
+                </OrderedListItem>
+                <OrderedListItem>
+                    To define safety, the model relies on the existance of safety levels in the ECHA database. In case of datagaps, the reported results on risk might be underestimated.
+                </OrderedListItem>
+                <OrderedListItem>
+                    The toxicity of possible byproducts is not considered in the toxicological assessment.
+                </OrderedListItem>
+
+            </UnorderedList>
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Danger" Clicked="HideModal">Close</Button>
+        </ModalFooter>
+    </ModalContent>
+    
+    
+</Modal>
+
+@code {
+    private Modal modalRef;
+
+    public void ShowModal()
+    {
+        modalRef.Show();
+    }
+
+    public void HideModal()
+    {
+        modalRef.Hide();
+    }
+}

@@ -1,0 +1,33 @@
+﻿<LayoutSiderContent style="position: absolute; top: calc(15% + 20px); left: 10px; width: 85%;">
+    <NavLink href="/procedure" class="btn btn-tool" style="margin-bottom: 10px; display: block;">Replication Tool</NavLink>
+    <NavLink href="/rinaSetup" class="btn btn-tool" style="margin-bottom: 10px; display: block;">Materials Performance</NavLink>
+    <NavLink href="/novaSetup" class="btn btn-tool" style="margin-bottom: 10px; display: block;">Environmental Fate</NavLink>
+    <NavLink href="/materials_page" class="btn btn-data" style="margin-bottom: 10px; display: block;">Materials</NavLink>
+    <NavLink href="/novaRecords" class="btn btn-data" style="margin-bottom: 10px; display: block;">Env. Fate Records</NavLink>
+    <NavLink @onclick="@(() => OnShowDisclaimer.InvokeAsync())" class="btn btn-disclaimer" style="margin-bottom: 10px; display: block;">Disclaimer</NavLink>
+</LayoutSiderContent>
+
+
+<style>
+    .btn-tool{
+        background-color: #3A7471;
+        border-color: #3A7471;
+        color:white;
+    }
+    .btn-data{
+        background-color: #2892A7;
+        border-color: #2892A7;
+        color:white;
+    }
+
+    .btn-disclaimer {
+        background-color: #C73772;
+        border-color: #C73772;
+        color: white;
+    }
+</style>
+
+@code{
+    [Parameter] 
+    public EventCallback OnShowDisclaimer { get; set; }
+}

@@ -1,0 +1,420 @@
+﻿@page "/novaOutput"
+@using Blazorise
+@using Blazorise.DataGrid
+@using Blazorise.Charts
+@using ProplanetReplicationTool.Data.Models.DTOs
+@using ProplanetReplicationTool.Services.Interfaces
+@using ProplanetReplicationTool.Shared.Components
+
+@inject NavigationManager _navigationManager
+@inject INovaService _novaService
+@inject IToastService _toastService
+@inject IJSRuntime JSRuntime
+
+@if (!_isInitialised)
+{
+    <CenteredLoadingBar />
+}
+else
+{
+    <Div Style="display: flex; justify-content: space-between;">
+        <Button Color="Color.Secondary" Clicked="GoBack">
+            <Icon Name="IconName.ArrowLeft"></Icon>
+        </Button>
+        <Div>
+            <Button Color="Color.Primary" Clicked="DownloadAllDataCsvFile" Class="ms-2">
+                Download All Data (.csv)
+            </Button>
+            <Button Color="Color.Success" Clicked="DownloadCsvFile" Class="ms-2">
+                Download Selected Results (.csv)
+            </Button>
+        </Div>
+       
+    </Div>
+    <br />
+
+    <Div Style="display: flex; width: 80%; justify-content: space-between;">
+        <Select Style="display: flex; width: 50%;" TValue="string" SelectedValueChanged="@(async (value) => await OnSelectResult(value))">
+            <Repeater Items="@JsonParserNova.Results">
+                <SelectItem Value="@context.Name">@context.Name</SelectItem>
+            </Repeater>
+        </Select>
+    </Div>
+    <br />
+
+    
+    <Table>
+        <TableHeader>
+            <TableRow>
+                <Repeater Items="@_results.Elements">
+                    <TableHeaderCell>
+                        <Switch TValue="bool" Checked="@_compartmentsSelected.Contains(context)" CheckedChanged="@(async (isChecked) => await OnCompartmentCheckedChanged(isChecked, @context.Name))">
+                            @context.Name
+                        </Switch>
+                    </TableHeaderCell>
+                </Repeater>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            @for (int i = 0; i < _results.Elements.OrderByDescending(e => e.Elements.Count).First().Elements.Count; i++)
+            {
+                int fila = i;
+                <TableRow>
+                    @foreach (JsonElementWrapper compartment in _results.Elements)
+                    {
+                        <TableRowCell>
+                            @if (fila < compartment.Elements.Count)
+                            {
+                                <Switch TValue="bool" Checked="@_subCompartmentsSelected.Contains(compartment.Elements[fila])" Disabled="!_compartmentsSelected.Contains(compartment)" CheckedChanged="@(async (isChecked) => await OnSubCompartmentCheckedChanged(isChecked, compartment, compartment.Elements[fila]))">
+                                    @compartment.Elements[fila].Name
+                                </Switch>
+
+                            }
+                        </TableRowCell>
+
+                    }
+                </TableRow>
+                
+            }
+            
+            
+        </TableBody>
+    </Table>
+
+
+    <br />
+    if (_compartmentsSelected.Count > 0 && _subCompartmentsSelected.Count > 0)
+    {
+        <Div Style="display: flex; width: 80%; justify-content: space-between;">
+            <Select Style="display: flex; width: 50%;" TValue="string" @bind-Value="_selectedPropertyName" SelectedValueChanged="@(async (value) => await OnSelectProperty(value))">
+                <Repeater Items="@_subCompartments[0].Elements">
+                    <SelectItem Value="@context.Name">@context.Name</SelectItem>
+                </Repeater>
+            </Select>
+        </Div>
+
+        <Chart @ref="_propertiesChart" Type="ChartType.Bar" TItem="double" />
+               
+
+        
+    }
+
+
+
+}
+
+@code {
+    [Parameter]
+    public JsonParserNova JsonParserNova { get; set; }
+
+    [Parameter]
+    public string? originUrl { get; set; }
+
+    private bool _isInitialised = false;
+    private JsonElementWrapper _results = new JsonElementWrapper();
+    private JsonElementWrapper _compartments = new JsonElementWrapper();
+    private List<JsonElementWrapper> _compartmentsSelected = new List<JsonElementWrapper>();
+    private List<JsonElementWrapper> _subCompartments = new List<JsonElementWrapper>();
+    private List<JsonElementWrapper> _subCompartmentsSelected = new List<JsonElementWrapper>();
+    private JsonElementWrapper _property = new JsonElementWrapper();
+
+    private Chart<double> _propertiesChart = new Chart<double>();
+    private CharData _charData = new CharData();
+    private string? _selectedPropertyName;
+    private const double JS_MAX_SAFE_INTEGER = 9007199254740991;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (JsonParserNova == null)
+        {
+            _navigationManager.NavigateTo("/");
+        }
+        _results = JsonParserNova.Results.FirstOrDefault() ?? new JsonElementWrapper();
+        _compartments = _results.Elements.FirstOrDefault() ?? new JsonElementWrapper();
+        _isInitialised = true;
+    }
+
+    private async Task OnSelectProperty(string selectedName)
+    {
+        _selectedPropertyName = selectedName;
+        _property = _subCompartments[0].Elements.FirstOrDefault(property => property.Name == selectedName).Elements[0];
+        await HandleRedraw();
+    }
+
+    async Task HandleRedraw()
+    {
+        await _propertiesChart.Clear();
+        await Task.Delay(100);
+        _charData = new CharData(_subCompartmentsSelected.Select(subComp => subComp.Name).ToArray());
+        BarChartDataset<double> barChartDataset = GetBarChartDataset();
+        await _propertiesChart.AddLabelsDatasetsAndUpdate(_charData.Labels, barChartDataset);
+
+    }
+
+    private BarChartDataset<double> GetBarChartDataset()
+    {
+        List<Double> data = GetDataFromSubCompartmentsSelected();
+        bool aplicarEscala = data.Any() && data.Max() > JS_MAX_SAFE_INTEGER;
+        double factorEscala = 1.0;
+        string sufijo = "";
+        string labelName = _property.Name;
+
+        if (aplicarEscala)
+        {
+            factorEscala = 1e15;
+            sufijo = "×10¹⁵";
+            labelName = labelName + " " + sufijo;
+            data = data.Select(x => x / factorEscala).ToList();
+
+            _propertiesChart.Options = new ChartOptions
+                {
+                    Scales = new Scales
+                    {
+                        YAxes = new List<Axis>
+                {
+                    new Axis
+                    {
+                        Ticks = new AxisTicks
+                        {
+                            BeginAtZero = true,
+                            Callback = (value, index, values) => (FormattableString)$"{value}{sufijo}"
+                        }
+                    }
+                }
+                    }
+                };
+        }
+        else
+        {
+            _propertiesChart.Options = new ChartOptions
+                {
+                    Scales = new Scales
+                    {
+                        YAxes = new List<Axis>
+                {
+                    new Axis
+                    {
+                        Ticks = new AxisTicks
+                        {
+                            BeginAtZero = true
+                        }
+                    }
+                }
+                    }
+                };
+        }
+
+        return new()
+            {
+                Label = labelName,
+                Data = data,
+                BackgroundColor = _charData.BackgroundColors,
+                BorderColor = _charData.BorderColors,
+                BorderWidth = 1
+            };
+    }
+
+    List<double> GetDataFromSubCompartmentsSelected()
+    {
+        List<double> data = new List<double>();
+        foreach (var subComp in _subCompartmentsSelected)
+        {
+            var property = subComp.Elements.FirstOrDefault(prop => prop.Name == _property.Name);
+            if (property != null)
+            {
+                data.Add(Double.Parse(property.Elements[0].Value));
+            }
+            else
+            {
+                data.Add(0);
+            }
+        }
+
+        return data;
+    }
+
+    private async Task OnSelectResult(string selectedName)
+    {
+        var selectedItem = JsonParserNova.Results.FirstOrDefault(item => item.Name == selectedName);
+        if (selectedItem != null)
+        {
+            _results = selectedItem;
+            _compartments = _results.Elements.FirstOrDefault() ?? new JsonElementWrapper();
+            _compartmentsSelected = new List<JsonElementWrapper>();
+            _subCompartments = new List<JsonElementWrapper>();
+            _subCompartmentsSelected = new List<JsonElementWrapper>();
+        }
+    }
+
+    private async Task OnCompartmentCheckedChanged(bool isChecked, string compartmentName)
+    {
+        _compartmentsSelected ??= new List<JsonElementWrapper>();
+        var compartment = _results!.Elements.FirstOrDefault(comp => comp.Name == compartmentName);
+
+        if (isChecked)
+        {
+            AddCompartment(compartment!);
+        }
+        else
+        {
+            await RemoveCompartment(compartment!);
+        }
+    }
+
+    private async Task OnSubCompartmentCheckedChanged(bool isChecked, JsonElementWrapper compartment, JsonElementWrapper subCompartment)
+    {
+        _subCompartmentsSelected ??= new List<JsonElementWrapper>();
+
+        if (isChecked)
+        {
+            _subCompartmentsSelected.Add(subCompartment);
+        }
+        else
+        {
+            _subCompartmentsSelected.Remove(subCompartment);
+            if (_subCompartmentsSelected.Count() == 0) _selectedPropertyName = null;
+        }
+        _selectedPropertyName = _selectedPropertyName != null ? _selectedPropertyName : _subCompartments[0].Elements[0].Name;
+        _property = _subCompartments[0].Elements.FirstOrDefault(property => property.Name == _selectedPropertyName).Elements[0];
+        if (_property != null && _property.Name != null)
+        {
+            await HandleRedraw();
+        }
+    }
+
+    private void AddCompartment(JsonElementWrapper compartment)
+    {
+        if (!_compartmentsSelected!.Contains(compartment))
+        {
+            _compartmentsSelected.Add(compartment);
+        }
+        UpdateSubCompartmentsSelected();
+
+    }
+
+    private async Task RemoveCompartment(JsonElementWrapper compartment)
+    {
+        _compartmentsSelected!.Remove(compartment);
+        UpdateSubCompartmentsSelected();
+        //Subcompartments will be removed from selected so that they dissapear from the chart
+        foreach (JsonElementWrapper subCompartment in compartment.Elements)
+        {
+            if (_subCompartmentsSelected.Contains(subCompartment))
+            {
+                _subCompartmentsSelected.Remove(subCompartment);
+            }
+        }
+        await HandleRedraw();
+
+    }
+
+    private void UpdateSubCompartmentsSelected()
+    {
+        _subCompartments = new List<JsonElementWrapper>();
+
+        foreach (var actualCompartment in _compartmentsSelected)
+        {
+            if (actualCompartment.Elements != null)
+            {
+                foreach (var subCompartment in actualCompartment.Elements)
+                {
+                    if (!_subCompartments.Any(subComp => subComp.Name == subCompartment.Name))
+                    {
+                        _subCompartments!.Add(subCompartment);
+                    }
+                }
+            }
+        }
+        _subCompartments = _subCompartments.OrderBy(subComp => subComp.Name).ToList();
+    }
+
+    private async Task GoBack()
+    {
+        _navigationManager.NavigateTo(originUrl, forceLoad: true);
+    }
+    private async Task DownloadCsvFile()
+    {
+        var csvString = GenerateCsvString();
+
+        if (string.IsNullOrEmpty(csvString))
+        {
+            _toastService.ShowWarning("No data selected to download.");
+            return;
+        }
+
+        var fileBytes = System.Text.Encoding.UTF8.GetBytes(csvString);
+        var base64String = Convert.ToBase64String(fileBytes);
+        var mimeType = "text/csv";
+        var fileName = $"results_{_selectedPropertyName ?? "data"}.csv";
+        await JSRuntime.InvokeVoidAsync("downloadFile", base64String, mimeType, fileName);
+    }
+
+    private string GenerateCsvString()
+    {
+        if (_subCompartmentsSelected == null || !_subCompartmentsSelected.Any() || string.IsNullOrEmpty(_selectedPropertyName))
+        {
+            return "";
+        }
+
+        var csvBuilder = new System.Text.StringBuilder();
+
+        csvBuilder.AppendLine($"SubCompartment,{_selectedPropertyName}");
+
+        foreach (var subComp in _subCompartmentsSelected)
+        {
+            var property = subComp.Elements.FirstOrDefault(prop => prop.Name == _selectedPropertyName);
+            var value = (property != null && property.Elements.Any()) ? property.Elements[0].Value : "0";
+
+            csvBuilder.AppendLine($"{subComp.Name},{value}");
+        }
+
+        return csvBuilder.ToString();
+    }
+    private async Task DownloadAllDataCsvFile()
+    {
+        var csvString = GenerateFullCsvString();
+
+        if (string.IsNullOrEmpty(csvString))
+        {
+            _toastService.ShowWarning("No data available to download.");
+            return;
+        }
+
+        var fileBytes = System.Text.Encoding.UTF8.GetBytes(csvString);
+        var base64String = Convert.ToBase64String(fileBytes);
+        var mimeType = "text/csv";
+        var fileName = "coating_optimization_full_results.csv";
+        await JSRuntime.InvokeVoidAsync("downloadFile", base64String, mimeType, fileName);
+    }
+
+    private string GenerateFullCsvString()
+    {
+        if (JsonParserNova == null || !JsonParserNova.Results.Any())
+        {
+            return null;
+        }
+
+        var csvBuilder = new System.Text.StringBuilder();
+        csvBuilder.AppendLine("ResultName,CompartmentName,SubCompartmentName,PropertyName,Value");
+
+        foreach (var result in JsonParserNova.Results)
+        {
+            foreach (var compartment in result.Elements)
+            {
+                foreach (var subCompartment in compartment.Elements)
+                {
+                    foreach (var property in subCompartment.Elements)
+                    {
+                        var value = (property.Elements != null && property.Elements.Any())
+                                    ? property.Elements[0].Value
+                                    : "N/A";
+
+                        csvBuilder.AppendLine($"{result.Name},{compartment.Name},{subCompartment.Name},{property.Name},{value}");
+                    }
+                }
+            }
+        }
+
+        return csvBuilder.ToString();
+    }
+}

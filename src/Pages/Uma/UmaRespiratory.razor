@@ -1,0 +1,67 @@
+﻿@using Blazorise
+@using ProplanetReplicationTool.Shared.Components
+
+@if (!_isInitialised)
+{
+    <CenteredLoadingBar />
+}
+else
+{
+    <Row>
+        <Column ColumnSize="ColumnSize.Is4">
+            <FieldLabel>Lung Model</FieldLabel>
+            <TextEdit Text="ICRP" Disabled="true" />
+        </Column>
+
+        <Column ColumnSize="ColumnSize.Is4">
+            <FieldLabel>Respiratory Volume Rate</FieldLabel>
+            <Select TValue="string" SelectedValue="RespiratoryVolumeSelected" SelectedValueChanged="@OnSelect">
+                <Repeater Items="@RespiratoryVolumes">
+                    <SelectItem Value="@context">@context</SelectItem>
+                </Repeater>
+            </Select>
+        </Column>
+
+        <Column ColumnSize="ColumnSize.Is4">
+            <FieldLabel>Exposure Duration (h)</FieldLabel>
+            <NumericEdit Value="LungExposureDuration" ValueChanged="OnLungExposureDurationChanged" TValue="int" />
+        </Column>
+    </Row>
+}
+
+
+@code {
+    [Parameter]
+    public string RespiratoryVolumeSelected { get; set; }
+    [Parameter]
+    public EventCallback<string> RespiratoryVolumeSelectedChanged { get; set; }
+
+    [Parameter]
+    public List<string> RespiratoryVolumes { get; set; }
+    [Parameter]
+    public int LungExposureDuration { get; set; }
+    [Parameter]
+    public EventCallback<int> LungExposureDurationChanged { get; set; }
+
+    private bool _isInitialised = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(RespiratoryVolumeSelected) && RespiratoryVolumes is not null && RespiratoryVolumes.Any())
+        {
+            await OnSelect(RespiratoryVolumes.FirstOrDefault());
+        }
+        _isInitialised = true;
+    }
+
+    private async Task OnSelect(string selectedVolume)
+    {
+        RespiratoryVolumeSelected = selectedVolume;
+        await RespiratoryVolumeSelectedChanged.InvokeAsync(RespiratoryVolumeSelected);
+    }
+    private Task OnLungExposureDurationChanged(int value)
+    {
+        LungExposureDuration = value;
+        return LungExposureDurationChanged.InvokeAsync(value);
+    }
+}

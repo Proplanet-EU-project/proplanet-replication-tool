@@ -1,0 +1,50 @@
+﻿@using Blazorise
+
+@for (var ri = 0; ri < Math.Ceiling(UpperBounds.Count / 3.0); ri++)
+{
+    var rowIndex = ri;
+    <Row Class="align-items-start" Style="margin-bottom: 15px;">
+        @for (var ci = 0; ci< 3; ci++)
+        {
+            var colIndex = ci;
+            var index = rowIndex * 3 + colIndex;
+            if (index < _labels.Count)
+            {
+                <Column ColumnSize="ColumnSize.Is4">
+                    <FieldLabel>@_labels[index]</FieldLabel>
+                    <NumericEdit Style="margin-bottom: 10px; width:100%;" TValue="int"
+                                 Value="@UpperBounds[index]"
+                                 ValueChanged="@((newValue) => OnUpperBoundChanged(index, newValue))" />
+                </Column>
+            }
+        }
+    </Row>
+}
+
+@code {
+    [Parameter]
+    public List<int> UpperBounds { get; set; } = new List<int>();
+
+    [Parameter]
+    public EventCallback<List<int>> UpperBoundsChanged { get; set; }
+
+    private readonly List<string> _labels = new List<string>
+    {
+        "Regional emission to air (t/yr)",
+        "Regional emission to lake water (t/yr)",
+        "Regional emission to fresh water (t/yr)",
+        "Regional emission to sea water (t/yr)",
+        "Regional emission to natural soil (t/yr)",
+        "Regional emission to agricultural soil (t/yr)",
+        "Regional emission to other soil (t/yr)"
+    };
+
+    private async Task OnUpperBoundChanged(int index, int newValue)
+    {
+        if (index < UpperBounds.Count)
+        {
+            UpperBounds[index] = newValue;
+        }
+        await UpperBoundsChanged.InvokeAsync(UpperBounds);
+    }
+}

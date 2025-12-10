@@ -1,0 +1,51 @@
+﻿@inherits LayoutComponentBase
+
+@using Blazored.Toast.Configuration
+@using ProplanetReplicationTool.Pages
+
+<PageTitle>ReplicationToolFrontend</PageTitle>
+
+<Layout Sider style="height: 100vh; width: 100vw; overflow: hidden;">
+     <LayoutSider style="width: 10%; background-color: #193140; height: 100%; position: relative;">
+
+         <LayoutSiderContent style="position: absolute; top: 10px; left: 25%; width: 15%;">
+             <NavLink href="/" style="width: 300%; height: 0; padding-bottom: 300%; border-radius: 50%; background-color: #fff; border: 1px solid #000; display: inline-block; position: relative;">
+                 <img src="images/ProplanetLogo.png" alt="Icono" style="position: absolute; top: 10%; left: 5%; width: 85%; height: 75%; border-radius: 30%;">
+             </NavLink>
+         </LayoutSiderContent>
+
+         <NavMenu OnShowDisclaimer="ShowDisclaimer"></NavMenu>
+     </LayoutSider>
+
+    <Layout style="height: 95%; max-width: 90vw; overflow: hidden;">
+         <LayoutHeader style="background: linear-gradient(to left, #FF91BE 0%, #8EFFC4 50%, #52E5FF 100%);">
+             <Login></Login>         
+         </LayoutHeader>
+
+        <LayoutContent style="max-width: 100%; overflow-x: auto;">
+             @Body
+            
+         </LayoutContent>
+
+         <LayoutFooter style="height: 5%; background: linear-gradient(to left, #FF91BE 0%, #8EFFC4 50%, #52E5FF 100%); position: fixed; bottom: 0; width: 100%;">
+            <Div Padding="Padding.Is3.OnY" TextAlignment="TextAlignment.Center" TextColor="TextColor.Muted" TextSize="TextSize.Small">
+                © 2024 - ProPlanet. All rights reserved.
+            </Div>
+         </LayoutFooter>
+     </Layout>
+ </Layout>
+<Disclaimer @ref="modalRef"></Disclaimer>
+<BlazoredToasts Position="ToastPosition.BottomRight"></BlazoredToasts>
+
+@code {
+    private Disclaimer modalRef;
+    private void ShowDisclaimer()
+    {
+        modalRef.ShowModal();
+    }
+}
+
+
+
+
+

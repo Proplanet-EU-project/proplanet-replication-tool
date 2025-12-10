@@ -1,0 +1,45 @@
+﻿@using Blazorise
+@using Blazored.Toast
+@using Blazored.Toast.Configuration
+@using ProplanetReplicationTool.Data.Models.DTOs
+@using ProplanetReplicationTool.Shared.Components
+
+@inject NavigationManager _navigationManager
+
+@if (!_isInitialised)
+{
+    <CenteredLoadingBar />
+}
+else
+{
+    <Div Style="display: flex; width: 100%;">
+        <Select TValue="String" SelectedValue="ScenarioSelected.ScenarioName" SelectedValueChanged="@OnSelect" Style="margin-right: 10px;">
+            <Repeater Items="@Scenarios">
+                <SelectItem Value="@context.ScenarioName">@context.ScenarioName</SelectItem>
+            </Repeater>
+        </Select>
+    </Div>
+}
+
+@code {
+    [Parameter]
+    public ScenarioDTO ScenarioSelected { get; set; }
+    [Parameter]
+    public EventCallback<ScenarioDTO> ScenarioSelectedChanged { get; set; }
+    [Parameter]
+    public List<ScenarioDTO> Scenarios { get; set; }
+    private bool _isInitialised = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ScenarioSelected = Scenarios.FirstOrDefault() ?? new ScenarioDTO();
+        await ScenarioSelectedChanged.InvokeAsync(ScenarioSelected);
+        _isInitialised = true;
+    }
+    private async Task OnSelect(string scenarioName)
+    {
+        ScenarioSelected = Scenarios.Where(s => scenarioName.Equals(s.ScenarioName)).FirstOrDefault() ?? new ScenarioDTO();
+        await ScenarioSelectedChanged.InvokeAsync(ScenarioSelected);
+    }
+
+}

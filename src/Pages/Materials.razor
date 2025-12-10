@@ -1,0 +1,68 @@
+﻿@page "/materials_page"
+@using Blazorise.DataGrid
+@using ProplanetReplicationTool.Data.Models
+@using ProplanetReplicationTool.Data.Repositories
+@using ProplanetReplicationTool.Shared.Components
+
+@inject IRepository<Material> _materialRepository
+
+@if (!_isInitialised)
+{
+    <CenteredLoadingBar />
+}else{
+    <Div Style="margin:0 1.25rem">
+        <DataGrid TItem="Material"
+                  Data="@_materials"
+                  ShowPager="true"
+                  PageSize="10"
+                  ResizeMode="TableResizeMode.Columns"
+                  Resizable="true"
+                  Responsive="true"
+                  Editable="true"
+                  EditMode="DataGridEditMode.Popup"
+                  Striped="true"
+        >
+
+            <DataGridColumns>
+
+                <DataGridColumn TItem="Material"
+                                Field="@nameof(Material.Name)"
+                                Caption="@nameof(Material.Name)"
+                                Sortable="true" />
+
+                <DataGridColumn TItem="Material"
+                                Field="@nameof(Material.Formula)"
+                                Caption="@nameof(Material.Formula)"
+                                Sortable="true" />
+
+                <DataGridColumn TItem="Material"
+                                Field="@nameof(Material.Cas)"
+                                Caption="@nameof(Material.Cas).ToUpper()"
+                                Sortable="true" />
+
+                <DataGridColumn TItem="Material"
+                                Field="@nameof(Material.MolecularWeight)"
+                                Caption="@nameof(Material.MolecularWeight)"
+                                Sortable="true" />
+            </DataGridColumns>
+        </DataGrid>
+    </Div>
+}
+
+@code {
+    private List<Material> _materials = new List<Material>();
+    private bool _isInitialised = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+
+        _isInitialised = true;
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _materials = await _materialRepository.GetAllAsync(orderBy: material => material.OrderBy(material => material.Name)) ?? new List<Material>();
+    }
+}
+    

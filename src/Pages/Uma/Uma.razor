@@ -1,0 +1,422 @@
+﻿@page "/procedure"
+@using Blazorise
+@using ProplanetReplicationTool.Data.Models
+@using ProplanetReplicationTool.Data.Models.DTOs
+@using ProplanetReplicationTool.Data.Repositories
+@using ProplanetReplicationTool.Services.Interfaces
+@using ProplanetReplicationTool.Shared.Components
+@using Microsoft.EntityFrameworkCore;
+@using System.Text.Json
+@using System.Text
+@using static ProplanetReplicationTool.Pages.Uma.UmaEnvironmental
+@using Microsoft.JSInterop
+@inject NavigationManager _navigationManager;
+@inject INovaService _novaService;
+@inject IRepository<Material> _materialRepository;
+@inject HttpClient _httpClient;
+@inject IJSRuntime JSRuntime
+@if (_isInitialised && !_resultsReceived)
+{
+    <Container>
+        <Row Style="margin-bottom: 20px;">
+            <Column ColumnSize="ColumnSize.Is12">
+                <Heading Size="HeadingSize.Is3">Select procedure</Heading>
+                <Divider />
+                <Select TValue="String" SelectedValue="defaultSelection" SelectedValueChanged="@OnSelect" Style="margin-right: 10px;">
+                    <SelectItem Value='"Coating"'>Coating</SelectItem>
+                    <SelectItem Value='"Material"'>Material</SelectItem>
+                </Select>
+                <br />
+            </Column>
+        </Row>
+        <Row>
+            <Column ColumnSize="ColumnSize.Is12">
+                <Heading Size="HeadingSize.Is3">Scenario</Heading>
+                <Divider />
+                <UmaScenario ScenarioSelected="@_scenario" Scenarios="@_scenarios" ScenarioSelectedChanged="@OnScenarioSelectedChanged"></UmaScenario>
+                <br />
+            </Column>                
+        </Row>
+        <Row>
+            <Column ColumnSize="ColumnSize.Is12">
+                <Heading Size="HeadingSize.Is3">Compounds</Heading>
+                <UmaSubstance SubstancesSelected="@_substancesSelected" Substances="@_substances"
+                SubstancesSelectedChanged="@OnSubstancesSelectedChanged"
+                IsCoatingProcedure="@_isCoating"/>
+                <br />
+            </Column>
+        </Row>
+        <Row>
+            <Column ColumnSize="ColumnSize.Is12">
+                <Heading Size="HeadingSize.Is3">Upper Bounds</Heading>
+                <Divider />
+                <UmaUpperbound UpperBounds="@_upperBounds" UpperBoundsChanged="@OnUpperBoundsChanged" />
+                <br />
+            </Column>
+        </Row>
+        <Row>
+            <Column ColumnSize="ColumnSize.Is12">
+                <Heading Size="HeadingSize.Is3">Respiratory Volume Rate</Heading>
+                <Divider />
+                <UmaRespiratory RespiratoryVolumes="@_respiratoryVolumes"
+                RespiratoryVolumeSelected="@_respiratoryVolumeSelected"
+                RespiratoryVolumeSelectedChanged="@OnRespiratoryVolumeSelectedChanged"
+                @bind-LungExposureDuration="@_lungExposureDuration" />
+                <br />
+            </Column>
+        </Row>
+        <Row>
+            <Column ColumnSize="ColumnSize.Is12">
+                <Heading Size="HeadingSize.Is3">Base Concentration</Heading>
+                <Divider />
+                <Field >
+                    <FieldLabel>Base concentration for lung deposition model (0-1)</FieldLabel>
+                    <NumericEdit TValue="float" @bind-Value="@_baseConcentration" Min="0" Max="1" Step="0.01m" />
+                </Field>
+                <br />
+            </Column>
+        </Row>
+        @if (_isCoating)
+        {
+            <Row>
+                <Column ColumnSize="ColumnSize.Is12">
+                    <Heading Size="HeadingSize.Is3">Surface Properties</Heading>
+                    <Divider />
+                    <UmaSurface @bind-wca_surface="@_wcaSurface"
+                    @bind-hca="@_hca"
+                    @bind-sfe="@_sfe" />
+                    <br />
+                </Column>
+            </Row>
+        }        
+        <Row>
+            <Field>
+                <Button Color="Color.Primary" Clicked="HandleCalculateUma">Calculate</Button>
+            </Field>
+        </Row>
+    </Container>
+}
+else if (_resultsReceived)
+{
+    <Container Fluid="true">
+        <Row>
+            <Column Style="margin-top: 10px; display: flex; justify-content: space-between;">
+                <Button Color="Color.Secondary" Clicked="() => _resultsReceived = false">Back to Form</Button>
+                <Button Color="Color.Success" Clicked="DownloadCsvFile" Class="ms-2">Download Results (.csv)</Button>
+            </Column>
+        </Row>
+
+        <Row Margin="Margin.Is4.FromTop">
+            <Column ColumnSize="ColumnSize.Is12">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Optimization Results</CardTitle>
+                    </CardHeader>
+                    <CardBody>
+                        @((MarkupString)_apiResponseData.Plots.OptimizationPlot)
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 15px; flex-wrap: wrap;">
+
+                            <div style="display: flex; align-items: center;">
+                                <span style="height: 12px; width: 12px; background-color: darkgreen; margin-right: 8px; border: 1px solid #ccc;"></span>
+                                <span>No Risk</span>
+                            </div>
+
+                            <div style="display: flex; align-items: center;">
+                                <span style="height: 12px; width: 12px; background-color: lightgreen; margin-right: 8px; border: 1px solid #ccc;"></span>
+                                <span>Low Risk</span>
+                            </div>
+
+                            <div style="display: flex; align-items: center;">
+                                <span style="height: 12px; width: 12px; background-color: yellow; margin-right: 8px; border: 1px solid #ccc;"></span>
+                                <span>Medium Risk</span>
+                            </div>
+
+                            <div style="display: flex; align-items: center;">
+                                <span style="height: 12px; width: 12px; background-color: red; margin-right: 8px; border: 1px solid #ccc;"></span>
+                                <span>High Risk</span>
+                            </div>
+
+                            <div style="display: flex; align-items: center;">
+                                <span style="height: 12px; width: 12px; background-color: blue; margin-right: 8px; border: 1px solid #ccc;"></span>
+                                <span>No Identified Risk</span>
+                            </div>
+
+                        </div>
+                    </CardBody>
+                </Card>
+            </Column>
+        </Row>
+
+        @if (_isCoating)
+        {
+            <Row Margin="Margin.Is4.FromTop">
+                <Column ColumnSize="ColumnSize.Is12.OnMobile.Is6.OnDesktop">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Proportions by Total Emission Rates</CardTitle>
+                        </CardHeader>
+                        <CardBody>
+                            @((MarkupString)_apiResponseData.Plots.ProportionsPlot)
+                        </CardBody>
+                    </Card>
+                </Column>
+                <Column ColumnSize="ColumnSize.Is12.OnMobile.Is6.OnDesktop">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Proportions by Concentration Level</CardTitle>
+                        </CardHeader>
+                        <CardBody>
+                            @((MarkupString)_apiResponseData.Plots.ConcentrationPlot)
+                        </CardBody>
+                    </Card>
+                </Column>
+            </Row>
+            <Row>
+                <Column ColumnSize="ColumnSize.Is12">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Lung Exposure Results</CardTitle>
+                        </CardHeader>
+                        <CardBody>
+                            @((MarkupString)_apiResponseData.Plots.LungPlot)
+                        </CardBody>
+                    </Card>
+                </Column>
+            </Row>
+        }
+        else
+        {
+            <Row Margin="Margin.Is4.FromTop">
+                <Column ColumnSize="ColumnSize.Is12.OnMobile.Is6.OnDesktop">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Properties</CardTitle>
+                        </CardHeader>
+                        <CardBody>
+                            @((MarkupString)_apiResponseData.Plots.PropertiesPlot)
+                        </CardBody>
+                    </Card>
+                </Column>
+                <Column ColumnSize="ColumnSize.Is12.OnMobile.Is6.OnDesktop">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Lung Exposure Results</CardTitle>
+                        </CardHeader>
+                        <CardBody>
+                            @((MarkupString)_apiResponseData.Plots.LungPlot)
+                        </CardBody>
+                    </Card>
+                </Column>
+            </Row>
+        }
+
+    </Container>
+}
+else
+{
+    <CenteredLoadingBar />
+}
+
+
+
+
+@code {
+
+    private List<MaterialDTO> _substancesSelected = new List<MaterialDTO>();
+    private List<MaterialDTO> _substances = new List<MaterialDTO>();
+    private ScenarioDTO _scenario = new ScenarioDTO();
+    private List<ScenarioDTO> _scenarios = new List<ScenarioDTO>();
+    private List<string> _respiratoryVolumes = new List<string>();
+    private string _respiratoryVolumeSelected;
+    private List<EnvironmentalMedia> _environmentalMedias = new List<EnvironmentalMedia>();
+    private EnvironmentalMedia _environmentalMediaSelected = new EnvironmentalMedia();
+    private List<int> _upperBounds = new List<int>();
+    private int _wcaSurface = 0;
+    private int _hca = 0;
+    private int _sfe = 0;
+    private int _lungExposureDuration = 100;
+    private bool _isInitialised = false;
+    private bool _resultsReceived = false;
+    private ApiResponse _apiResponseData;
+    private bool _isCoating = true;
+    private string defaultSelection = "Coating";
+    private float _baseConcentration = 1.0f;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var allMaterialEntities = await _materialRepository.GetAllAsync();
+        _substances = allMaterialEntities.Select(material => new MaterialDTO
+            {
+                NanomaterialName = material.Name,
+                MolecularWeight = material.MolecularWeight,
+                ModifiedTotalCarbonAtoms = material.TotalCarbonAtoms,
+                TotalCarbonAtoms = material.TotalCarbonAtoms
+
+            }).ToList();
+        _scenarios = await _novaService.GetAllScenarios();
+        _environmentalMedias = Enum.GetValues<EnvironmentalMedia>().ToList();
+        _upperBounds = new List<int>(new int[7]).Select(_ => 100).ToList();
+        _respiratoryVolumes = await _novaService.GetAllRespiratoryVolumeRate();
+        _isInitialised = true;
+    }
+    private void OnScenarioSelectedChanged(ScenarioDTO newScenario)
+    {
+        _scenario = newScenario;
+    }
+    private void OnUpperBoundsChanged(List<int> newUpperBounds)
+    {
+        _upperBounds = newUpperBounds;
+    }
+    private void OnEnvironmentalMediaSelectedChanged(EnvironmentalMedia newEnvironmentalMedia)
+    {
+        _environmentalMediaSelected = newEnvironmentalMedia;
+    }
+    private void OnRespiratoryVolumeSelectedChanged(string newVolume)
+    {
+        _respiratoryVolumeSelected = newVolume;
+    }
+    private void OnSubstancesSelectedChanged(List<MaterialDTO> newSubstances)
+    {
+        _substancesSelected = newSubstances;
+        StateHasChanged();
+    }
+    public async Task<List<Material>> GetMaterialsWithDetailsByNamesAsync(List<string> names)
+    {
+        var materials = await _materialRepository.GetAllAsync(
+
+            predicate: material => names.Contains(material.Name),
+            include: q => q
+                        .Include(m => m.EcosystemToxicity)
+                        .Include(m => m.HumanToxicity)
+                        .Include(m => m.RinaTest)
+        );
+
+        return materials;
+    }
+    private async Task OnSelect(string isCoatingString)
+    {
+        defaultSelection = isCoatingString;
+        _isCoating = isCoatingString.Equals("Coating", StringComparison.OrdinalIgnoreCase);
+    }
+    private async Task DownloadCsvFile()
+    {
+        if (string.IsNullOrEmpty(_apiResponseData?.CsvData))
+        {
+            _toastService.ShowWarning("No data");
+            return;
+        }
+
+        var csvString = _apiResponseData.CsvData;
+
+        var fileBytes = System.Text.Encoding.UTF8.GetBytes(csvString);
+
+        var base64String = Convert.ToBase64String(fileBytes);
+
+        var mimeType = "text/csv";
+        var fileName = "coating_optimization_results.csv";
+        await JSRuntime.InvokeVoidAsync("downloadFile", base64String, mimeType, fileName);
+    }
+    private async Task HandleCalculateUma()
+    {
+        try
+        {
+            _isInitialised = false;
+            if (_substancesSelected == null || !_substancesSelected.Any())
+            {
+                _toastService.ShowError("No substances selected.");
+                _isInitialised = true;
+                return;
+            }
+
+            var materialNames = _substancesSelected.Select(s => s.NanomaterialName).ToList();
+
+            List<Material> fullMaterialDetails = await GetMaterialsWithDetailsByNamesAsync(materialNames);
+
+            var orderedFullMaterials = new List<Material>();
+            var lowMols = new List<int>();
+            var uppMols = new List<int>();
+
+            foreach (var selectedDto in _substancesSelected)
+            {
+                var fullDetail = fullMaterialDetails.FirstOrDefault(m => m.Name == selectedDto.NanomaterialName);
+                fullDetail.TotalCarbonAtoms = selectedDto.ModifiedTotalCarbonAtoms;
+                if (fullDetail != null)
+                {
+                    orderedFullMaterials.Add(fullDetail);
+                    lowMols.Add(selectedDto.LowerMol);
+                    uppMols.Add(selectedDto.UpperMol);
+                }
+            }
+
+            var lungFlags = _substancesSelected.ToDictionary(
+               s => s.NanomaterialName,
+               s => s.UseInLungDeposition);
+
+            var performanceFlags = _substancesSelected.ToDictionary(
+            s => s.NanomaterialName,
+            s => s.UseInPerformance);
+            var payload = new CalculationPayload
+                {
+                    Substances = orderedFullMaterials,
+                    LowMols = lowMols,
+                    UppMols = uppMols,
+                    Scenario = _scenario.ScenarioName,
+                    EnvironmentalMedia = _environmentalMediaSelected.ToString(),
+                    Upperbound = _upperBounds,
+                    LungRespiratoryVolumeRate = _respiratoryVolumeSelected,
+                    WcaSurface = _wcaSurface,
+                    Hca = _hca,
+                    Sfe = _sfe,
+                    LungExposureDuration = _lungExposureDuration,
+                    LungModel = "ICRP",
+                    LungDepositionFlags = lungFlags,
+                    PerformanceFlags = performanceFlags,
+                    BaseConcentration = _baseConcentration
+                };
+
+            var options = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+            string jsonString = JsonSerializer.Serialize(payload, options);
+            var umaURL = Environment.GetEnvironmentVariable("UMA_URL");
+            var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
+            var procedureURL = _isCoating ? "/optimization/coatings_procedure" : "/optimization/material_procedure";
+            var response = await _httpClient.PostAsync($"{umaURL}{procedureURL}", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                try
+                {
+                    options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    _apiResponseData = JsonSerializer.Deserialize<ApiResponse>(jsonResponse, options);
+                    _resultsReceived = true;
+                    _toastService.ShowSuccess("Calculation successful!");
+                }
+                catch (JsonException ex)
+                {
+                    _toastService.ShowError($"Error processing the results");
+                    _resultsReceived = false;
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _toastService.ShowError($"API Error.");
+                _resultsReceived = false;
+            }
+
+            _isInitialised = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _toastService.ShowError($"An error occurred connecting with external API");
+            Console.WriteLine($"Error: {ex.Message}");
+            _isInitialised = true;
+            StateHasChanged();
+            return;
+        }       
+    }
+}

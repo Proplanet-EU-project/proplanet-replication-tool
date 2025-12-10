@@ -1,0 +1,58 @@
+﻿@using Blazorise
+@using Blazored.Toast
+@using Blazored.Toast.Configuration
+@using ProplanetReplicationTool.Data.Models.DTOs
+@using ProplanetReplicationTool.Shared.Components
+@using System.ComponentModel
+
+@inject NavigationManager _navigationManager
+
+@if (!_isInitialised)
+{
+    <CenteredLoadingBar />
+}
+else
+{
+    <Div Style="display: flex; width: 100%;">
+        <Select TValue="EnvironmentalMedia" SelectedValue="EnvironmentalMediaSelected" SelectedValueChanged="@OnSelect" Style="margin-right: 10px;">
+            <Repeater Items="@EnvironmentalMedias">
+                <SelectItem Value="@context">@context.ToString().Replace('_',' ')</SelectItem>
+            </Repeater>
+        </Select>
+    </Div>
+}
+
+@code {
+    [Parameter]
+    public EnvironmentalMedia EnvironmentalMediaSelected { get; set; }
+    [Parameter]
+    public EventCallback<EnvironmentalMedia> EnvironmentalMediaSelectedChanged { get; set; }
+    [Parameter]
+    public List<EnvironmentalMedia> EnvironmentalMedias { get; set; }
+    private bool _isInitialised = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        EnvironmentalMediaSelected = EnvironmentalMedias.FirstOrDefault();
+        await EnvironmentalMediaSelectedChanged.InvokeAsync(EnvironmentalMediaSelected);
+        _isInitialised = true;
+    }
+    private async Task OnSelect(EnvironmentalMedia environmentalMedia)
+    {
+        EnvironmentalMediaSelected = EnvironmentalMedias.Where(s => environmentalMedia.Equals(s)).FirstOrDefault();
+        await EnvironmentalMediaSelectedChanged.InvokeAsync(EnvironmentalMediaSelected);
+    }
+    public enum EnvironmentalMedia
+    {
+        air,
+        air_systematic_effect,
+        air_local_effect,
+        fresh_water,
+        ocean_water,
+        marine_sediment,
+        fresh_sediment,
+        natural_soil,
+        agricultural_soil,
+        other_soil
+    }
+}

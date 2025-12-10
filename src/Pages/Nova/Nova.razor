@@ -1,0 +1,127 @@
+﻿@page "/novaSetup"
+@using Blazorise
+@using ProplanetReplicationTool.Data.Models
+@using ProplanetReplicationTool.Data.Models.DTOs
+@using ProplanetReplicationTool.Services.Interfaces
+@using ProplanetReplicationTool.Shared.Components
+
+@inject NavigationManager _navigationManager;
+@inject INovaService _novaService;
+
+@if (!_isInitialised)
+{
+    <CenteredLoadingBar />
+}
+else if(!_isNovaTestPosted)
+{
+    <Container>
+        <Row>
+            <Column ColumnSize="ColumnSize.Is12">
+                <Heading Size="HeadingSize.Is3">Scenario</Heading>
+                <Divider />
+                <NovaScenario ScenarioSelected="@_scenario" Scenarios="@_scenarios" ScenarioSelectedChanged="@OnScenarioSelectedChanged"></NovaScenario>
+                <br />
+            </Column>
+        </Row>
+        <Row>
+            <Column ColumnSize="ColumnSize.Is12">
+                <Heading Size="HeadingSize.Is3">Compound Properties</Heading>
+                <Divider />
+                <NovaMaterial NanoMaterialSelected="@_nanoMaterial" NanoMaterialSelectedChanged="@OnNanoMaterialSelectedChanged"></NovaMaterial>
+                <br />
+            </Column>
+        </Row>
+        <Row>
+            <Column ColumnSize="ColumnSize.Is12">
+                <Heading Size="HeadingSize.Is3">Emission Rates</Heading>
+                <Divider />
+                <NovaEmission EmissionSelected="_emission"></NovaEmission>
+                <br />
+            </Column>
+        </Row>
+        <Row>
+            <Field>
+                <Button Color="Color.Primary" Clicked="HandleCalculateNovaTest">Calculate</Button>
+            </Field>
+        </Row>
+    </Container>
+}
+else
+{
+    <Container>
+        <Row>
+            <Column ColumnSize="ColumnSize.Is12">
+                <Heading Size="HeadingSize.Is3">Environmental fate records</Heading>
+                <Divider />
+                <NovaOutput JsonParserNova="@jsonParserNova" originUrl="/novaSetup"></NovaOutput>
+                <br />
+            </Column>
+        </Row>
+    </Container>
+
+}
+
+
+@code {
+
+    private ScenarioDTO _scenario = new ScenarioDTO();
+    private MaterialDTO _nanoMaterial = new MaterialDTO();
+    private EmissionDTO _emission = new EmissionDTO();
+    private List<ScenarioDTO> _scenarios = new List<ScenarioDTO>();
+    private List<EmissionDTO> _emissions = new List<EmissionDTO>();
+
+    private bool _isInitialised = false;
+    private bool _isNovaTestPosted = false;
+    private JsonParserNova? jsonParserNova = null;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var scenariosAndEmissions = await _novaService.GetAllScenariosAndEmissions();
+        _scenarios = scenariosAndEmissions.scenarios;
+        _emissions = scenariosAndEmissions.emissions;
+        _emission = _emissions.FirstOrDefault() ?? new EmissionDTO();
+        _isInitialised = true;
+    }
+    private async Task HandleCalculateNovaTest()
+    {
+        _isInitialised = false;
+        NovaDTO novaTest = new NovaDTO(_scenario, _emission, _nanoMaterial);
+        (bool isAlreadySaved, string jsonResponseParserNova) novaResults = await _novaService.GetPostNovaResults(novaTest);
+
+        bool isSavedInDDBB = novaResults.isAlreadySaved;
+        string jsonResponseParserNova = novaResults.jsonResponseParserNova;
+
+        if (jsonResponseParserNova != "")
+        {
+            JsonParserNova novaJsonParser = new JsonParserNova();
+            novaJsonParser.ParseJson(jsonResponseParserNova);
+            jsonParserNova = novaJsonParser;
+
+            if (jsonParserNova != null)
+            {
+            
+                if (isSavedInDDBB || await _novaService.StorePostNovaInformation(novaTest, jsonResponseParserNova))
+                {
+                    _isNovaTestPosted = true;
+                    _isInitialised = true;
+                    _toastService.ShowSuccess("Posted.");
+                }
+                else
+                {
+                    _toastService.ShowError("Failed to post.");
+                }
+            }
+        }
+    }
+
+    private void OnScenarioSelectedChanged(ScenarioDTO newScenario)
+    {
+        _scenario = newScenario;
+        _emission = _emissions[_scenarios.IndexOf(_scenario)];
+    }
+    private void OnNanoMaterialSelectedChanged(MaterialDTO newNanoMaterial)
+    {
+        _nanoMaterial = newNanoMaterial;
+    }
+}

@@ -1,0 +1,51 @@
+﻿@using Blazorise
+@using ProplanetReplicationTool.Data.Models.DTOs
+@using ProplanetReplicationTool.Shared.Components
+@using ProplanetReplicationTool.Services.Interfaces
+
+@inject INovaService _novaService
+@inject NavigationManager _navigationManager
+
+@if (!_isInitialised)
+{
+    <CenteredLoadingBar />
+}
+else
+{
+    <Div Style="display: flex; width: 80%; justify-content: space-between;">
+        <SearchableSelect Materials="nanoMaterials" SelectedValueChanged="OnSelect" />
+
+        <Field Style="display: flex; justify-content: space-evenly; align-items: center;">
+            <Label Style="inline-size: -webkit-fill-available;">Molecular Weight: </Label>
+            <TextEdit Text="@NanoMaterialSelected.MolecularWeight.ToString()" Disabled="true"></TextEdit>
+        </Field>
+    </Div>
+}
+
+@code {
+    [Parameter]
+    public MaterialDTO NanoMaterialSelected { get; set; }
+    [Parameter]
+    public EventCallback<MaterialDTO> NanoMaterialSelectedChanged { get; set; }
+
+    private List<MaterialDTO> nanoMaterials;
+    private bool _isInitialised = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var materials = await _novaService.GetAllNanoMaterials();
+
+        nanoMaterials = materials.OrderBy(m => m.NanomaterialName).ToList();
+
+        NanoMaterialSelected = nanoMaterials.FirstOrDefault() ?? new MaterialDTO();
+        await NanoMaterialSelectedChanged.InvokeAsync(NanoMaterialSelected);
+
+        _isInitialised = true;
+    }
+
+    private async Task OnSelect(string nanoMaterialName)
+    {
+        NanoMaterialSelected = nanoMaterials.FirstOrDefault(nm => nm.NanomaterialName.Equals(nanoMaterialName)) ?? new MaterialDTO();
+        await NanoMaterialSelectedChanged.InvokeAsync(NanoMaterialSelected);
+    }
+}

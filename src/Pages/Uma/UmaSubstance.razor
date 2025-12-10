@@ -1,0 +1,219 @@
+﻿@using Blazorise
+@using Blazored.Toast
+@using Blazored.Toast.Configuration
+@using Blazorise.DataGrid
+@using ProplanetReplicationTool.Data.Models.DTOs
+@using ProplanetReplicationTool.Shared.Components
+
+@if (!_isInitialised)
+{
+    <CenteredLoadingBar />
+}
+else
+{
+    <DataGrid TItem="MaterialDTO"
+        @key="@IsCoatingProcedure"
+        Data="@SubstancesSelected"
+        ResizeMode="TableResizeMode.Columns"
+        Resizable="true"
+        Responsive="true"
+        Editable="true"
+        RowUpdated="@OnRowUpdated"
+        EditMode="DataGridEditMode.Inline">
+
+        <DataGridColumns>
+            <DataGridColumn TItem="MaterialDTO"
+            Field="@nameof(MaterialDTO.NanomaterialName)"
+            Caption="Name"
+            VerticalAlignment="VerticalAlignment.Middle" 
+            Editable = "false"/>
+
+            <DataGridColumn TItem="MaterialDTO"
+            Field="@nameof(MaterialDTO.LowerMol)"
+            Caption="Min Proportion"
+            Editable="true" />
+
+            <DataGridColumn TItem="MaterialDTO"
+            Field="@nameof(MaterialDTO.UpperMol)"
+            Caption="Max Proportion"
+            Editable="true" />
+            <DataGridColumn TItem="MaterialDTO"
+            Caption="Lung Deposition"
+            TextAlignment="TextAlignment.Center"
+            Editable="true">
+
+                <DisplayTemplate>
+                    <Check TValue="bool"
+                    Checked="@context.UseInLungDeposition"
+                    Disabled="true" />
+                </DisplayTemplate>
+
+                <EditTemplate>
+                    <Check TValue="bool"
+                    Checked="@context.Item.UseInLungDeposition"
+                    CheckedChanged="@((value) => { context.Item.UseInLungDeposition = value; })" />
+                </EditTemplate>
+
+            </DataGridColumn>
+            @if (IsCoatingProcedure)
+            {
+                <DataGridColumn TItem="MaterialDTO"
+                Caption="Performance"
+                            TextAlignment="TextAlignment.Center"
+                            Editable="true">
+
+                <DisplayTemplate>
+                    <Check TValue="bool"
+                           Checked="@context.UseInPerformance"
+                           Disabled="true" />
+                </DisplayTemplate>
+
+                <EditTemplate>
+                    <Check TValue="bool"
+                           Checked="@context.Item.UseInPerformance"
+                           CheckedChanged="@((value) => { context.Item.UseInPerformance = value; })" />
+                </EditTemplate>
+
+            </DataGridColumn>
+            }
+
+            <DataGridColumn TItem="MaterialDTO"
+            Caption="Carbon Atoms"
+            TextAlignment="TextAlignment.Center"
+            Editable="true">
+                <DisplayTemplate>
+                    @context.ModifiedTotalCarbonAtoms
+                </DisplayTemplate>
+                <EditTemplate>
+                    @if (context.Item.TotalCarbonAtoms == 0)
+                    {
+                        <NumericEdit TValue="int" @bind-Value="context.Item.ModifiedTotalCarbonAtoms" Min="0"/>
+                    }
+                    else
+                    {
+                        @context.Item.ModifiedTotalCarbonAtoms
+                    }
+
+                </EditTemplate>
+            </DataGridColumn>
+            <DataGridCommandColumn TItem="MaterialDTO">
+                <NewCommandTemplate>
+                    <Button Color="Color.Primary" Clicked="async () => await ShowSubstancesModal()">Add Compounds</Button>
+                </NewCommandTemplate>
+
+                <EditCommandTemplate>
+                    <Button Style="margin-right: 10px;" Color="Color.Primary" Clicked="@context.Clicked">Edit</Button>
+                </EditCommandTemplate>
+                <SaveCommandTemplate >
+                    <Button Style="margin-right: 10px;" Color="Color.Success" Clicked="@context.Clicked">Save</Button>
+                </SaveCommandTemplate>
+                <CancelCommandTemplate>
+                    <Button Color="Color.Secondary" Clicked="@context.Clicked">Cancel</Button>
+                </CancelCommandTemplate>
+                <DeleteCommandTemplate>
+                    <Button Color="Color.Danger" Clicked="@(() => OnSubstanceRemoved((MaterialDTO)context.Item))">
+                        Remove
+                    </Button>
+                </DeleteCommandTemplate>
+            </DataGridCommandColumn>
+        </DataGridColumns>
+    </DataGrid>
+    @if (SubstancesSelected.Count() == 0)
+    {
+        <Alert Color="Color.Info" Style="text-align: center; margin-top: 1rem;" Visible="true">
+            <Icon Name="IconName.InfoCircle" />
+            <Strong>No compounds selected</Strong>
+            <p class="mt-2">Click the "Add Compounds" button above to get started.</p>
+        </Alert>
+    }
+    <Modal @ref="_addSubstancesModal">
+        <ModalContent Centered="true" Size="ModalSize.ExtraLarge">
+            <ModalHeader>
+                <ModalTitle>Compounds</ModalTitle>
+                <CloseButton @onclick="CancelSubstancesSelection" />
+            </ModalHeader>
+            <ModalBody>
+                <Div style="display:flex; flex-wrap:wrap; margin: -0.25rem;">
+                    @foreach (var s in Substances)
+                    {
+                        <Div style="width:50%; padding:0.25rem; box-sizing:border-box;">
+                            <Check TValue="bool" Checked="@_tempSelectedSubstances.Contains(s)"
+                                   CheckedChanged="@(v => OnSubstanceChecked(v, s))">
+                                @s.NanomaterialName
+                            </Check>
+                        </Div>
+                    }
+                </Div>
+
+            </ModalBody>
+            <ModalFooter>
+                <Button Color="Color.Secondary" Clicked="CancelSubstancesSelection">Cancel</Button>
+                <Button Color="Color.Success" Clicked="ConfirmSubstancesSelection">Add</Button>
+            </ModalFooter>
+        </ModalContent>
+    </Modal>
+}
+
+@code {
+    [Parameter]
+    public List<MaterialDTO> SubstancesSelected { get; set; } = new List<MaterialDTO>();
+    [Parameter]
+    public EventCallback<List<MaterialDTO>> SubstancesSelectedChanged { get; set; }
+    [Parameter]
+    public List<MaterialDTO> Substances { get; set; } = new List<MaterialDTO>();
+    [Parameter]
+    public bool IsCoatingProcedure { get; set; }
+    private bool _isInitialised = false;
+    protected Modal _addSubstancesModal = new();
+    private List<MaterialDTO> _tempSelectedSubstances = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isInitialised = true;
+    }
+    private async Task ShowSubstancesModal()
+    {
+        _tempSelectedSubstances = new List<MaterialDTO>(SubstancesSelected);
+        await _addSubstancesModal.Show();
+    }
+
+    private async Task EditSubstances(MaterialDTO material)
+    {
+        await _addSubstancesModal.Show();
+    }
+    private async Task ConfirmSubstancesSelection()
+    {
+        SubstancesSelected = new List<MaterialDTO>(_tempSelectedSubstances);
+        await SubstancesSelectedChanged.InvokeAsync(SubstancesSelected);
+
+        await _addSubstancesModal.Hide();
+    }
+    private Task CancelSubstancesSelection()
+    {
+        return _addSubstancesModal.Hide();
+    }
+    private void OnSubstanceChecked(bool isSelected, MaterialDTO substance)
+    {
+        if (isSelected)
+        {
+            if (!_tempSelectedSubstances.Contains(substance))
+            {
+                _tempSelectedSubstances.Add(substance);
+            }
+        }
+        else
+        {
+            _tempSelectedSubstances.Remove(substance);
+        }
+    }
+    private async Task OnSubstanceRemoved(MaterialDTO substance)
+    {
+        SubstancesSelected.Remove(substance);
+        await SubstancesSelectedChanged.InvokeAsync(SubstancesSelected);
+    }
+    private async Task OnRowUpdated(SavedRowItem<MaterialDTO, Dictionary<string, object>> e)
+    {
+        await SubstancesSelectedChanged.InvokeAsync(SubstancesSelected);
+    }
+
+}

@@ -1,0 +1,121 @@
+﻿@page "/rinaSetup"
+@using Blazorise
+@using ProplanetReplicationTool.Shared.Components
+@using ProplanetReplicationTool.Data.Models
+@using ProplanetReplicationTool.Data.Repositories
+
+@inject NavigationManager _navigationManager;
+@inject IRepository<Material> _materialRepository
+
+
+@if (!_isInitialised)
+{
+    <CenteredLoadingBar />
+}
+else
+{
+    <Container>
+        <Row Style="align-items: flex-end;">
+            <Column>
+                <Field>
+                    <Select TValue="string" SelectedValueChanged="@(async (value) => OnNanoMaterialSelectedChanged(value))">
+                        <Repeater Items="@_materialCarbonCounts.Keys">
+                            <SelectItem Value="@context">@context</SelectItem>
+                        </Repeater>
+                    </Select>
+                </Field>                  
+            </Column>
+            <Column>
+                <Field>
+                    <FieldLabel>Carbon Atoms: </FieldLabel>
+                    <TextEdit Text="@_materialCarbonCounts.GetValueOrDefault(_selectedMaterial).ToString()" Disabled="true"></TextEdit>
+                </Field>
+            </Column>
+            <Column>
+                <Field>
+                    <Button Color="Color.Primary" Clicked="HandleCalculateRinaTest">Calculate</Button>
+                </Field>
+            </Column>
+        </Row>  
+        <Row>
+            @if(WCA != null)
+            {
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHeaderCell>WCA</TableHeaderCell>
+                            <TableHeaderCell>SFE</TableHeaderCell>
+                            <TableHeaderCell>HCA</TableHeaderCell>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow>
+                            <TableRowCell>@WCA.ToString()</TableRowCell>
+                            <TableRowCell>@SFE.ToString()</TableRowCell>
+                            <TableRowCell>@HCA.ToString()</TableRowCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            }
+        </Row>
+    </Container>
+}
+
+@code {
+    string _selectedMaterial = "default substance";
+    bool _isInitialised = false;
+    float? WCA = null;
+    float? SFE = null;
+    float? HCA = null;
+    Dictionary<string, int> _materialCarbonCounts = new Dictionary<string, int>();
+    Dictionary<string, float> _wcaOverrides = new Dictionary<string, float>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var materials = await _materialRepository.GetAllAsync(orderBy: material => material.OrderBy(m => m.Name));
+        if(materials.Count > 0)
+        {
+            _selectedMaterial = materials.FirstOrDefault().Name;
+            _materialCarbonCounts = materials.ToDictionary(m => m.Name, m => m.TotalCarbonAtoms);
+        }
+        _wcaOverrides = new Dictionary<string, float>()
+        {
+            { "starch", 57.4f },
+            { "chitosan", 97.5f },
+            { "sodium alginate", 41.8f }
+        };
+        _isInitialised = true;
+    }
+
+    void HandleCalculateRinaTest()
+    {
+        if (_selectedMaterial != null)
+        {
+            string materialName = _selectedMaterial.ToLower().Replace("_", " ");
+            if (_wcaOverrides.Any(o => materialName.Contains(o.Key)))
+            {
+                WCA = _wcaOverrides.First(o => materialName.Contains(o.Key)).Value;
+                HCA = 0;
+                SFE = 0;
+            }
+            else
+            {
+                var carbonAtoms = _materialCarbonCounts.First(m => materialName.ToLower().Contains(m.Key.ToLower())).Value;
+                WCA = 89.54f + 1.40f * carbonAtoms;
+                HCA = 18.91f + 1.00f * carbonAtoms;
+                SFE = 29.12f - 0.41f * carbonAtoms;
+            }
+
+
+        }
+    }
+
+    void OnNanoMaterialSelectedChanged(string newNanoMaterial)
+    {
+        _selectedMaterial = newNanoMaterial;
+        WCA = null;
+        HCA = null;
+        SFE = null;
+    }
+
+}

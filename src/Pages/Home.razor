@@ -1,0 +1,48 @@
+﻿@page "/"
+
+<PageTitle>Index</PageTitle>
+
+<Div class="background-logo">
+
+    <h1>PROPLANET Replication Tool</h1>
+
+    Welcome to the PROPLANET Replication Tool.
+</Div>
+
+
+
+<style>
+    .background-logo {
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        background-color: #f4f6f9;
+    }
+
+    .background-logo::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: url('images/ProplanetLogo.png');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        opacity: 0.1;
+        z-index: 0;
+    }
+
+    .background-logo > * {
+        position: relative;
+        z-index: 1;
+        color: #222; /* keep text dark */
+    }
+
+
+</style>

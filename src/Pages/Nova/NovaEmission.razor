@@ -1,0 +1,156 @@
+﻿@using Blazorise
+@using Blazorise.DataGrid
+@using ProplanetReplicationTool.Data.Models
+@using ProplanetReplicationTool.Data.Models.DTOs
+@using ProplanetReplicationTool.Shared.Components
+
+@inject NavigationManager _navigationManager
+
+@if (!_isInitialised)
+{
+    <CenteredLoadingBar />
+}
+else
+{
+    <Container>
+        <Card>
+            <CardBody>
+                <Row>
+                    <Column>
+                        <h4>Regional scale</h4>
+                        <Field>
+                            <FieldLabel>to air [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToAirRegional" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>to lake water [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToLakeWaterRegional" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>to fresh water [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToFreshWaterRegional" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>to sea water [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToSeaWaterRegional" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>to natural soil [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToNaturalSoilRegional" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>to agricultural soil [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToAgriculturalSoilRegional" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>to other soil [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToOtherSoilRegional" />
+                        </Field>
+                    </Column>
+                    <Column>
+                        <h4>Continental scale</h4>
+                        <Field>
+                            <FieldLabel>to air [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToAirContinental" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>to lake water [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToLakeWaterContinental" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>to fresh water [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToFreshWaterContinental" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>to sea water [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToSeaWaterContinental" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>to natural soil [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToNaturalSoilContinental" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>to agricultural soil [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToAgriculturalSoilContinental" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>to other soil [t/yr]</FieldLabel>
+                            <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToOtherSoilContinental" />
+                        </Field>
+                    </Column>
+                </Row>
+                <Field>
+                    <Check TValue="bool" @bind-Checked="showGlobalScaleEmissionRates">Show global scale emission rates</Check>
+                </Field>
+                @if (showGlobalScaleEmissionRates)
+                {
+                    <h4>Global scale</h4>
+                    <Row>
+                        <Column>
+                            <h5>Moderate</h5>
+                            <Field>
+                                <FieldLabel>to air [t/yr]</FieldLabel>
+                                <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToAirModerate" />
+                            </Field>
+                            <Field>
+                                <FieldLabel>to water [t/yr]</FieldLabel>
+                                <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToWaterModerate" />
+                            </Field>
+                            <Field>
+                                <FieldLabel>to soil [t/yr]</FieldLabel>
+                                <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToSoilModerate" />
+                            </Field>
+                        </Column>
+                        <Column>
+                            <h5>Arctic</h5>
+                            <Field>
+                                <FieldLabel>to air [t/yr]</FieldLabel>
+                                <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToAirArctic" />
+                            </Field>
+                            <Field>
+                                <FieldLabel>to water [t/yr]</FieldLabel>
+                                <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToWaterArctic" />
+                            </Field>
+                            <Field>
+                                <FieldLabel>to soil [t/yr]</FieldLabel>
+                                <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToSoilArctic" />
+                            </Field>
+                        </Column>
+                        <Column>
+                            <h5>Tropical</h5>
+                            <Field>
+                                <FieldLabel>to air [t/yr]</FieldLabel>
+                                <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToAirTropical" />
+                            </Field>
+                            <Field>
+                                <FieldLabel>to water [t/yr]</FieldLabel>
+                                <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToWaterTropical" />
+                            </Field>
+                            <Field>
+                                <FieldLabel>to soil [t/yr]</FieldLabel>
+                                <NumericEdit Disabled="@isDisabled" Decimals="15" @bind-Value="EmissionSelected.EmissionToSoilTropical" />
+                            </Field>
+                        </Column>
+                    </Row>
+                }                
+            </CardBody>
+        </Card>
+    </Container>
+}
+
+@code {
+    [Parameter]
+    public EmissionDTO EmissionSelected { get; set; }
+
+    [Parameter]
+    public bool isDisabled { get; set; } = false;
+
+    private bool _isInitialised = false;
+    private bool showGlobalScaleEmissionRates = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isInitialised = true;
+    }
+
+}

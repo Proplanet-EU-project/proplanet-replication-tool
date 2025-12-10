@@ -1,0 +1,303 @@
+﻿@page "/toxicities"
+@using Blazorise.DataGrid
+@using ProplanetReplicationTool.Data.Models
+@using ProplanetReplicationTool.Data.Repositories
+@using ProplanetReplicationTool.Shared.Components
+@using Blazorise.Components
+
+@inject IRepository<Material> _materialRepository
+@inject IRepository<HumanToxicity> _humanToxicityRepository
+@inject IRepository<EcosystemToxicity> _ecosystemToxicityRepository
+@inject Blazored.Toast.Services.IToastService ToastService
+
+@if (!_isInitialised)
+{
+    <CenteredLoadingBar />
+}
+else if(_materials.Count == 0)
+{
+    <Card>
+        <CardBody>
+            <CardText>No materials found for toxicity calculation.</CardText>
+        </CardBody>
+    </Card>
+}
+else
+{
+    <br />
+    <DropdownList TItem="Material" TValue="Material"
+                  Style="margin-left: 20px;"
+                  Data="@_materials"
+                  TextField="@((item)=>item.Name)"
+                  ValueField="@((item)=>item)"
+                  SelectedValueChanged="@((item)=>OnSelectedMaterialChanged(item))"
+                  Color="Color.Primary"
+                  MaxMenuHeight="200px">
+        <Text>
+            @_selectedMaterial.Name
+        </Text>
+    </DropdownList>
+    <br />
+    if(_humanToxicity == null)
+    {
+        <Card>
+            <CardBody>
+                <CardText>There is no human toxicity registry for this material </CardText>
+            </CardBody>
+        </Card>
+    }
+    else
+    {
+        <Div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <!-- Table 1 -->
+            <Table Style="width:25%">
+                <TableBody>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">W Inhalation Systemic Long</TableRowCell>
+                        <TableRowCell>@_humanToxicity.WInhalationSystemicLong</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">W Inhalation Systemic Short</TableRowCell>
+                        <TableRowCell>@_humanToxicity.WInhalationSystemicShort</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">W Inhalation Local Long</TableRowCell>
+                        <TableRowCell>@_humanToxicity.WInhalationLocalLong</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">W Inhalation Local Short</TableRowCell>
+                        <TableRowCell>@_humanToxicity.WInhalationLocalShort</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">W Dermal Systemic Long</TableRowCell>
+                        <TableRowCell>@_humanToxicity.WDermalSystemicLong</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">W Dermal Systemic Short</TableRowCell>
+                        <TableRowCell>@_humanToxicity.WDermalSystemicShort</TableRowCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+
+            <!-- Table 2 -->
+            <Table Style="width:25%">
+                <TableBody>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">W Dermal Local Long</TableRowCell>
+                        <TableRowCell>@_humanToxicity.WDermalLocalLong</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">W Dermal Local Short</TableRowCell>
+                        <TableRowCell>@_humanToxicity.WDermalLocalShort</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">W Eyes Local</TableRowCell>
+                        <TableRowCell>@_humanToxicity.WEyesLocal</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">P Inhalation Systemic Long</TableRowCell>
+                        <TableRowCell>@_humanToxicity.PInhalationSystemicLong</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">P Inhalation Systemic Short</TableRowCell>
+                        <TableRowCell>@_humanToxicity.PInhalationSystemicShort</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">P Inhalation Local Long</TableRowCell>
+                        <TableRowCell>@_humanToxicity.PInhalationLocalLong</TableRowCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+
+            <!-- Table 3 -->
+            <Table Style="width:25%">
+                <TableBody>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">P Inhalation Local Short</TableRowCell>
+                        <TableRowCell>@_humanToxicity.PInhalationLocalShort</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">P Dermal Systemic Long</TableRowCell>
+                        <TableRowCell>@_humanToxicity.PDermalSystemicLong</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">P Dermal Systemic Short</TableRowCell>
+                        <TableRowCell>@_humanToxicity.PDermalSystemicShort</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">P Dermal Local Long</TableRowCell>
+                        <TableRowCell>@_humanToxicity.PDermalLocalLong</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">P Dermal Local Short</TableRowCell>
+                        <TableRowCell>@_humanToxicity.PDermalLocalShort</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">P Eyes Local</TableRowCell>
+                        <TableRowCell>@_humanToxicity.PEyesLocal</TableRowCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+
+            <!-- Table 4 -->
+            <Table Style="width:20%">
+                <TableBody>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">P Oral Systemic Long</TableRowCell>
+                        <TableRowCell>@_humanToxicity.POralSystemicLong</TableRowCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableRowCell Style="font-weight:bold">P Oral Systemic Short</TableRowCell>
+                        <TableRowCell>@_humanToxicity.POralSystemicShort</TableRowCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+        </Div>
+    }
+
+    if(_ecosystemToxicity == null)
+    {
+        <Card>
+            <CardBody>
+                <CardText>There is no ecosystem toxicity registry for this material </CardText>
+            </CardBody>
+        </Card>
+    }
+    else
+    {
+        <Div style="width: 100%; overflow-x: auto; white-space: nowrap;">
+            <Table style="width: max-content;">
+                <TableHeader>
+                    <TableRow>
+                        <TableHeaderCell>Aquatic Freshwater</TableHeaderCell>
+                        <TableHeaderCell>Aquatic Marinewater</TableHeaderCell>
+                        <TableHeaderCell>Aquatic STP</TableHeaderCell>
+                        <TableHeaderCell>Aquatic Sediment Freshwater</TableHeaderCell>
+                        <TableHeaderCell>Aquatic Sediment Marinewater</TableHeaderCell>
+                        <TableHeaderCell>Air</TableHeaderCell>
+                        <TableHeaderCell>Terrestrial Soil</TableHeaderCell>
+                        <TableHeaderCell>Predators Oral Poisoning</TableHeaderCell>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow>
+                        <TableRowCell>@_ecosystemToxicity.AquaticFreshwater</TableRowCell>
+                        <TableRowCell>@_ecosystemToxicity.AquaticMarinewater</TableRowCell>
+                        <TableRowCell>@_ecosystemToxicity.AquaticStp</TableRowCell>
+                        <TableRowCell>@_ecosystemToxicity.AquaticSedimentFreshwater</TableRowCell>
+                        <TableRowCell>@_ecosystemToxicity.AquaticSedimentMarinewater</TableRowCell>
+                        <TableRowCell>@_ecosystemToxicity.Air</TableRowCell>
+                        <TableRowCell>@_ecosystemToxicity.TerrestrialSoil</TableRowCell>
+                        <TableRowCell>@_ecosystemToxicity.PredatorsOralPoisoning</TableRowCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+        </Div>
+    }
+}
+
+@code {
+    #region initialize variables
+    private Material _selectedMaterial = null;
+    private HumanToxicity _humanToxicity = null;
+    private EcosystemToxicity _ecosystemToxicity = null;
+    private List<Material> _materials = new List<Material>();
+    private bool _isInitialised = false;
+    #endregion
+
+    #region initialization methods
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+
+        _isInitialised = true;
+    }
+
+    private async Task OnSelectedMaterialChanged(Material material)
+    {
+        _selectedMaterial = material;
+        try
+        {
+			_humanToxicity = await _humanToxicityRepository.GetSingleOrDefaultAsync(humanToxicity => humanToxicity.MaterialId == _selectedMaterial.Id);
+		}
+        catch (HttpRequestException e)
+        {
+            if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                ToastService.ShowInfo("There is no human toxicity registry for this material");
+            }
+            _humanToxicity = null;
+        }
+
+        try
+        {
+			_ecosystemToxicity = await _ecosystemToxicityRepository.GetSingleOrDefaultAsync(ecosystemToxicity => ecosystemToxicity.MaterialId == _selectedMaterial.Id);
+        }
+        catch (HttpRequestException e)
+        {
+            if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                ToastService.ShowInfo("There is no ecosystem toxicity registry for this material");
+            }
+            _ecosystemToxicity = null;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _materials = await _materialRepository.GetAllAsync(orderBy: material => material.OrderBy(material => material.Name)) ?? new List<Material>();
+            if (_materials.Count == 0)
+            {
+                ToastService.ShowInfo("No materials found");
+                _isInitialised = true;
+                return;
+            }
+            else
+            {
+
+                _selectedMaterial = _materials.FirstOrDefault();
+                try
+                {
+                    _humanToxicity = await _humanToxicityRepository.GetSingleOrDefaultAsync(humanToxicity => humanToxicity.MaterialId == _selectedMaterial.Id);
+                }
+                catch (HttpRequestException e)
+                {
+                    if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        ToastService.ShowInfo("There is no human toxicity registry for this material");
+                    }
+                }
+
+                try
+                {
+                    _ecosystemToxicity = await _ecosystemToxicityRepository.GetSingleOrDefaultAsync(ecosystemToxicity => ecosystemToxicity.MaterialId == _selectedMaterial.Id);
+                }
+                catch (HttpRequestException e)
+                {
+                    if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        ToastService.ShowInfo("There is no ecosystem toxicity registry for this material");
+                    }
+                }
+            }
+
+        }
+        catch (HttpRequestException e)
+        {
+            if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                ToastService.ShowInfo("Not found");
+                _isInitialised = true;
+            }
+        }
+    }
+
+    #endregion
+
+}
+    
